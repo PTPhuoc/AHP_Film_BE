@@ -13,9 +13,13 @@ def get_plan_of_caculator(request):
         caculator = session.query(Caculators).filter(Caculators.id == caculatorId).first()
         if caculator:
             all_plans = session.query(Plans).filter(Plans.caculatorId == caculatorId).all()
-            session.close()
-            plan_list = [{"id": p.id, "name": p.name, "index": p.index} for p in all_plans]
-            return Response({"status": "Success", "plans": plan_list})
+            if all_plans:
+                session.close()
+                plan_list = [{"id": p.id, "name": p.name, "index": p.index} for p in all_plans]
+                return Response({"status": "Success", "plans": plan_list})
+            else:
+                session.close()
+                return Response({"status": "Success", "plans": []})
         else:
             session.close()
             return Response({"status": "Not Found", "message": "Mã Bài Tính không tồn tại!"})
@@ -39,9 +43,13 @@ def add_plan(request):
                 session.add(new_plan)
                 session.commit()
                 all_plans = session.query(Plans).filter(Plans.caculatorId == caculator.id).all()
-                session.close()
-                plan_list = [{"id": p.id, "name": p.name, "index": p.index} for p in all_plans]
-                return Response({"plans": plan_list, "status": "Success"})
+                if all_plans:
+                    session.close()
+                    plan_list = [{"id": p.id, "name": p.name, "index": p.index} for p in all_plans]
+                    return Response({"plans": plan_list, "status": "Success"})
+                else:
+                    session.close()
+                    return Response({"plans": [], "status": "Success"})
             else:
                 session.close()
                 return Response({"status": "Not Found", "message": "Mã Bài tính không tồn tại!"})
@@ -60,11 +68,18 @@ def delete_plan(request):
             plan = session.query(Plans).filter(Plans.id == planId).first()
             if plan:
                 session.delete(plan)
+                session.query(Plans).filter(Plans.index > plan.index).update(
+                    {Plans.index: Plans.index - 1}, synchronize_session=False
+                )
                 session.commit()
                 all_plans = session.query(Plans).filter(Plans.caculatorId == caculator.id).all()
-                session.close()
-                plan_list = [{"id": p.id, "name": p.name, "index": p.index} for p in all_plans]
-                return Response({"status": "Success", "plans": plan_list})
+                if all_plans:
+                    session.close()
+                    plan_list = [{"id": p.id, "name": p.name, "index": p.index} for p in all_plans]
+                    return Response({"status": "Success", "plans": plan_list})
+                else:
+                    session.close()
+                    return Response({"status": "Success", "plans": []})
             else:
                 session.close()
                 return Response({"status": "Empty Value", "message": "Phương án không được trống!"})

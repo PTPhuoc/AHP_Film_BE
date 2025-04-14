@@ -10,15 +10,18 @@ def get_criteria_of_caculator(request):
     try:
         caculatorId = request.GET.get("caculatorId", "No Id")
         session = SessionLocal()
-        caculator = session.query(Caculators).filter(Caculators.id == caculatorId)
+        caculator = session.query(Caculators).filter(Caculators.id == caculatorId).first()
         if caculator:
             all_criteria = session.query(Criterias.id, Criterias.index, Criterias.name).filter(
                 Criterias.caculatorId == caculatorId).all()
             session.close()
-            criteria_list = [
-                {"id": p.id, "index": p.index, "name": p.name} for p in all_criteria
-            ]
-            return Response({"status": "Success", "criterias": criteria_list})
+            if all_criteria:
+                criteria_list = [
+                    {"id": p.id, "index": p.index, "name": p.name} for p in all_criteria
+                ]
+                return Response({"status": "Success", "criterias": criteria_list})
+            else:
+                return Response({"status": "Success", "criterias": []})
         else:
             session.close()
             return Response({"status": "Not Found", "message": "Mã Bài Tính không tồn tại!"})
@@ -61,15 +64,21 @@ def delete_criteria(request):
         session = SessionLocal()
         caculator = session.query(Caculators).filter(Caculators.id == caculatorId).first()
         if caculator:
-            plan = session.query(Criterias).filter(Criterias.id == criteriaId).first()
-            if plan:
-                session.delete(plan)
+            criteria = session.query(Criterias).filter(Criterias.id == criteriaId).first()
+            if criteria:
+                session.delete(criteria)
+                session.query(Criterias).filter(Criterias.index > criteria.index).update(
+                    {Criterias.index: Criterias.index - 1}, synchronize_session=False)
                 session.commit()
                 all_criteria = session.query(Criterias.name, Criterias.index, Criterias.id).filter(
                     Criterias.caculatorId == caculator.id).all()
-                session.close()
-                criteria_list = [{"id": p.id, "index": p.index, "name": p.name} for p in all_criteria]
-                return Response({"status": "Success", "plans": criteria_list})
+                if all_criteria:
+                    criteria_list = [{"id": p.id, "index": p.index, "name": p.name} for p in all_criteria]
+                    session.close()
+                    return Response({"status": "Success", "criterias": criteria_list})
+                else:
+                    session.close()
+                    return Response({"status": "Success", "criterias": []})
             else:
                 session.close()
                 return Response({"status": "Empty Value", "message": "Tiêu chí không được để trống!"})
@@ -99,6 +108,7 @@ def get_default_criteria(request):
             if all_criteria:
                 for criteria in all_criteria:
                     session.delete(criteria)
+            session.commit()
             for criteria in default_value:
                 new_criteria = Criterias(name=criteria["name"], index=criteria["index"], caculatorId=caculatorId)
                 session.add(new_criteria)
