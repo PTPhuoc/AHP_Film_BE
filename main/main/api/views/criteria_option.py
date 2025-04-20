@@ -1,8 +1,12 @@
+import json
+
+import numpy as np
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from ..database import SessionLocal
 from ..models.caculators import Caculators
 from ..models.criterias import Criterias
+from ..models.pair_of_criterias import Pair_Of_Criterias
 
 
 @api_view(["GET"])
@@ -41,14 +45,23 @@ def add_criteria(request):
             session = SessionLocal()
             caculator = session.query(Caculators).filter(Caculators.id == caculatorId).first()
             if caculator:
-                new_criteria = Criterias(caculatorId=caculator.id, name=criteria_name, index=index)
-                session.add(new_criteria)
-                session.commit()
-                all_criteria = session.query(Criterias.name, Criterias.index, Criterias.id).filter(
-                    Criterias.caculatorId == caculator.id).all()
-                session.close()
-                criteria_list = [{"id": p.id, "index": p.index, "name": p.name} for p in all_criteria]
-                return Response({"criterias": criteria_list, "status": "Success"})
+                exists_criteria = session.query(Criterias).filter((Criterias.caculatorId == caculatorId) & (Criterias.name == criteria_name)).first()
+                if exists_criteria:
+                    session.close()
+                    return Response({"status": "Fault", "message": "Tên tiêu chí này đã tồn tại!"})
+                else:
+                    matrix_criteria_exists = session.query(Pair_Of_Criterias).filter(
+                        Pair_Of_Criterias.caculatorId == caculatorId).first()
+                    if matrix_criteria_exists:
+                        session.delete(matrix_criteria_exists)
+                    new_criteria = Criterias(caculatorId=caculator.id, name=criteria_name, index=index)
+                    session.add(new_criteria)
+                    session.commit()
+                    all_criteria = session.query(Criterias.name, Criterias.index, Criterias.id).filter(
+                        Criterias.caculatorId == caculator.id).all()
+                    session.close()
+                    criteria_list = [{"id": p.id, "index": p.index, "name": p.name} for p in all_criteria]
+                    return Response({"criterias": criteria_list, "status": "Success"})
             else:
                 session.close()
                 return Response({"status": "Not Found", "message": "Mã Bài tính không tồn tại!"})
@@ -69,6 +82,10 @@ def delete_criteria(request):
                 session.delete(criteria)
                 session.query(Criterias).filter(Criterias.index > criteria.index).update(
                     {Criterias.index: Criterias.index - 1}, synchronize_session=False)
+                matrix_criteria_exists = session.query(Pair_Of_Criterias).filter(
+                    Pair_Of_Criterias.caculatorId == caculatorId).first()
+                if matrix_criteria_exists:
+                    session.delete(matrix_criteria_exists)
                 session.commit()
                 all_criteria = session.query(Criterias.name, Criterias.index, Criterias.id).filter(
                     Criterias.caculatorId == caculator.id).all()

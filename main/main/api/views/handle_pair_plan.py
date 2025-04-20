@@ -12,7 +12,7 @@ from ..models.pair_of_criterias import Pair_Of_Criterias
 def handel_point_plan(request):
     try:
         caculatorId = request.data.get("caculatorId")
-        name_plan = request.data.get("namePlan")
+        name_criteria = request.data.get("nameCriteria")
         matrix_get = request.data.get("matrix")
         session = SessionLocal()
         caculator = session.query(Caculators).filter(Caculators.id == caculatorId).first()
@@ -34,14 +34,18 @@ def handel_point_plan(request):
             CR = CI / RI
             matrix1 = np.column_stack((weighting_matrix, weighted_sum))
             matrix2 = np.column_stack((matrix1, consistency_vector))
-            matrix_to_json = json.dumps(matrix)
-            new_matrix_plan = Pair_Of_Plans(caculatorId=caculatorId, matrix=matrix_to_json, name=name_plan, cr=CR)
-            session.add(new_matrix_plan)
+            matrix_to_json = json.dumps(matrix.tolist())
+            matrix_plan_exists = session.query(Pair_Of_Plans).filter((Pair_Of_Plans.caculatorId == caculatorId) & (Pair_Of_Plans.name == name_criteria)).first()
+            if matrix_plan_exists:
+                matrix_plan_exists.matrix = matrix_to_json
+            else:
+                new_matrix_plan = Pair_Of_Plans(caculatorId=caculatorId, matrix=matrix_to_json, name=name_criteria, cr=CR)
+                session.add(new_matrix_plan)
             session.commit()
             session.close()
             return Response(
-                {"status": "Success", "matrix": matrix2.tolist(), "namePlan": name_plan, "lamdaMax": lamda_max, "CI": CI,
-                 "CR": CR})
+                {"status": "Success", "matrix": matrix2.tolist(), "namePlan": name_criteria, "lamdaMax": lamda_max, "CI": CI,
+                 "CR": CR, "RI": RI})
         else:
             session.close()
             return Response({"status": "Not Found", "message": "Mã bài tính không tồn tại!"})
@@ -54,9 +58,8 @@ def handel_point_plan(request):
 
 def handle_matrix(matrix):
     rows, cols = matrix.shape
-    sum_row = matrix[rows - 1]
-    matrix = np.delete(matrix, rows - 1, axis=0)
-    normalised_matrix = matrix / sum_row
+    sum_col = np.sum(matrix, axis=0)
+    normalised_matrix = matrix / sum_col
     weighting_matrix = np.mean(normalised_matrix, axis=1)
     return weighting_matrix
 
@@ -101,35 +104,35 @@ def get_rank_plan(request):
 def get_matrix_plan(request):
     try:
         caculatorId = request.GET.get("caculatorId")
-        name_plan = request.GET.get("namePlan")
+        name_criteria = request.GET.get("nameCriteria")
         session = SessionLocal()
         caculator = session.query(Caculators).filter(Caculators.id == caculatorId).first()
         if caculator:
             plan = (session.query(Pair_Of_Plans)
-                           .filter((Pair_Of_Plans.caculatorId == caculatorId) & (Pair_Of_Plans.name == name_plan))).all()
+                           .filter((Pair_Of_Plans.caculatorId == caculatorId) & (Pair_Of_Plans.name == name_criteria))).first()
             if plan:
                 matrix = np.array(json.loads(plan.matrix))
-                rows, cols = matrix.shape
-                n = rows - 1
-                sum_row = matrix[rows - 1]
-                matrix = np.delete(matrix, rows - 1, axis=0)
-                normalised_matrix = matrix / sum_row
-                weighting_matrix = np.mean(normalised_matrix, axis=1)
-                consistency_rate_matrix = matrix * weighting_matrix
-                weighted_sum = np.sum(consistency_rate_matrix, axis=1)
-                consistency_vector = weighted_sum / weighting_matrix
-                lamda_max = np.mean(consistency_vector)
-                CI = (lamda_max - n) / (n - 1)
-                RI_dict = {1: 0.00, 2: 0.00, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49}
-                RI = RI_dict.get(n, 1.49)
-                CR = CI / RI
-                matrix1 = np.column_stack((weighting_matrix, weighted_sum))
-                matrix2 = np.column_stack((matrix1, consistency_vector))
+                # rows, cols = matrix.shape
+                # n = rows - 1
+                # sum_row = matrix[rows - 1]
+                # matrix = np.delete(matrix, rows - 1, axis=0)
+                # normalised_matrix = matrix / sum_row
+                # weighting_matrix = np.mean(normalised_matrix, axis=1)
+                # consistency_rate_matrix = matrix * weighting_matrix
+                # weighted_sum = np.sum(consistency_rate_matrix, axis=1)
+                # consistency_vector = weighted_sum / weighting_matrix
+                # lamda_max = np.mean(consistency_vector)
+                # CI = (lamda_max - n) / (n - 1)
+                # RI_dict = {1: 0.00, 2: 0.00, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49}
+                # RI = RI_dict.get(n, 1.49)
+                # CR = CI / RI
+                # matrix1 = np.column_stack((weighting_matrix, weighted_sum))
+                # matrix2 = np.column_stack((matrix1, consistency_vector))
                 session.close()
-                return Response({"status": "Success", "matrix": matrix2.tolist(), "lamdaMax": lamda_max, "CI": CI, "CR": CR})
+                return Response({"status": "Success", "matrix": matrix.tolist(), "CR": plan.cr})
             else:
                 session.close()
-                return Response({"status": "Empty Value", "message": "Phương án không tồn tại!"})
+                return Response({"status": "Success", "matrix": [], "CR": 0})
         else:
             session.close()
             return Response({"status": "Not Found", "message": "Mã bài tính không tồn tại!"})

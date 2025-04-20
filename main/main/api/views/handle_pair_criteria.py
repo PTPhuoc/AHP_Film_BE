@@ -39,12 +39,16 @@ def handle_point_criteria(request):
             RI = RI_dict.get(n, 1.49)
             CR = CI/RI
             matrix1 = np.column_stack((normalised_matrix, weighting_matrix))
-            matrix2_1 = np.column_stack((consistency_rate_matrix, weighted_sum))
+            matrix2_1 = np.column_stack((weighting_matrix, weighted_sum))
             matrix2_2 = np.column_stack((matrix2_1, consistency_vector))
             matrix_to_json = json.dumps(matrix.tolist())
-            new_criteria = Pair_Of_Criterias(caculatorId=caculatorId, matrix=matrix_to_json, cr=CR)
+            matrix_criteria_exists = session.query(Pair_Of_Criterias).filter(Pair_Of_Criterias.caculatorId == caculatorId).first()
+            if matrix_criteria_exists:
+                matrix_criteria_exists.matrix = matrix_to_json
+            else:
+                new_criteria = Pair_Of_Criterias(caculatorId=caculatorId, matrix=matrix_to_json, cr=CR)
+                session.add(new_criteria)
             rank_criteria = handle_rank(weighting_matrix)
-            session.add(new_criteria)
             session.commit()
             session.close()
             return Response({
@@ -52,7 +56,7 @@ def handle_point_criteria(request):
                 "matrix1": matrix1.tolist(),
                 "matrix2": matrix2_2.tolist(),
                 "rank": rank_criteria,
-                "lamda max": lamda_max,
+                "lamdaMax": lamda_max,
                 "CI": CI,
                 "RI": RI,
                 "CR": CR
