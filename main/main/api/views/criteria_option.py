@@ -129,6 +129,10 @@ def get_default_criteria(request):
             for criteria in default_value:
                 new_criteria = Criterias(name=criteria["name"], index=criteria["index"], caculatorId=caculatorId)
                 session.add(new_criteria)
+            matrix_criteria_exists = session.query(Pair_Of_Criterias).filter(
+                Pair_Of_Criterias.caculatorId == caculatorId).first()
+            if matrix_criteria_exists:
+                session.delete(matrix_criteria_exists)
             session.commit()
             session.close()
             return Response({"status": "Success", "criterias": default_value})
