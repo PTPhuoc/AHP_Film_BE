@@ -11,6 +11,7 @@ SessionLocal = sessionmaker(bind=engine)
 # Base class cho model
 Base = declarative_base()
 
-from .models import Caculators, Criterias, Plans, pair_of_criterias, pair_of_plans
+from .models import Caculators, Criterias, Plans, pair_of_criterias, pair_of_plans, criteria_default, plan_default
 
 Base.metadata.create_all(bind=engine)
+

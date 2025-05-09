@@ -32,7 +32,7 @@ def get_caculator(request):
                 {"caculator":
                      {"id": new_id, "dateCreate": vn_time.strftime("%d/%m/%Y %H:%M")}, 'status': "Success"})
     except Exception as ex:
-        return Response({"status": "Server Error", "Error": str(ex)})
+        return Response({"status": "Server Error", "error": str(ex)})
 
 
 @api_view(["GET"])
@@ -53,7 +53,7 @@ def get_history(request):
                 })
         return Response({"status": "Success", "history": list_history})
     except Exception as ex:
-        return Response({"status": "Server Error", "Error": str(ex)})
+        return Response({"status": "Server Error", "error": str(ex)})
     finally:
         session.close()
 

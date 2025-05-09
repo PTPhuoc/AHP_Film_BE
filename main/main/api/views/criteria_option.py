@@ -7,6 +7,7 @@ from ..database import SessionLocal
 from ..models.caculators import Caculators
 from ..models.criterias import Criterias
 from ..models.pair_of_criterias import Pair_Of_Criterias
+from ..models.criteria_default import criteria_default
 
 
 @api_view(["GET"])
@@ -139,5 +140,71 @@ def get_default_criteria(request):
         else:
             session.close()
             return Response({"status": "Not Found", "message": "Mã bảng tính không tồn tại!"})
+    except Exception as ex:
+        return Response({"status": "Server Error", "error": str(ex)})
+
+
+@api_view(["GET"])
+def get_all_criteria_catalyst(request):
+    try:
+        session = SessionLocal()
+        all_criteria = session.query(criteria_default).all()
+        if all_criteria:
+            criteria_data = [{"id": item.id, "name": item.name} for item in all_criteria]
+            session.close()
+            return Response({"status": "Success", "criterias": criteria_data})
+        else:
+            session.close()
+            return Response({"status": "Success", "criterias": []})
+    except Exception as ex:
+        return Response({"status": "Server Error", "error": str(ex)})
+
+
+@api_view(["POST"])
+def add_criteria_catalyst(request):
+    try:
+        name = request.data.get("name")
+        if name:
+            session = SessionLocal()
+            new_criteria = criteria_default(name=name)
+            session.add(new_criteria)
+            session.commit()
+            all_criteria = session.query(criteria_default).all()
+            if all_criteria:
+                criteria_data = [{"id": item.id, "name": item.name} for item in all_criteria]
+                session.close()
+                return Response({"status": "Success", "criterias": criteria_data})
+            else:
+                session.close()
+                return Response({"status": "Success", "criterias": []})
+        else:
+            return Response({"status": "Empty Value", "message": "Tên tiêu chí trống!"})
+    except Exception as ex:
+        return Response({"status": "Server Error", "error": str(ex)})
+
+
+@api_view(["DELETE"])
+def delete_criteria_catalyst(request):
+    try:
+        id = request.GET.get("criteriaId")
+        if id:
+            session = SessionLocal()
+            criteria = session.query(criteria_default).filter(criteria_default.id == id).first()
+            if criteria:
+                session.delete(criteria)
+                session.commit()
+                all_criteria = session.query(criteria_default).all()
+                if all_criteria:
+                    criteria_data = [{"id": item.id, "name": item.name} for item in all_criteria]
+                    session.close()
+                    return Response({"status": "Success", "criterias": criteria_data})
+                else:
+                    session.close()
+                    return Response({"status": "Success", "criterias": []})
+            else:
+                session.close()
+                return Response({"status": "Not Found", "message": "Mã tiêu chí không tồn tại!"})
+        else:
+            return Response({"status": "Empty Value", "message": "Mã tiêu chí trống!"})
     except Exception as ex:
         return Response({"status": "Server Error", "error": str(ex)})
