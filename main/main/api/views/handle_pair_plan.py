@@ -57,7 +57,6 @@ def handel_point_plan(request):
 
 
 def handle_matrix(matrix):
-    rows, cols = matrix.shape
     sum_col = np.sum(matrix, axis=0)
     normalised_matrix = matrix / sum_col
     weighting_matrix = np.mean(normalised_matrix, axis=1)
@@ -86,7 +85,7 @@ def get_rank_plan(request):
                 pa_criteria = handle_matrix(matrix_criteria)
                 result = np.dot(pa_matrix, pa_criteria)
                 session.close()
-                return Response({"status": "Success", "rank": result})
+                return Response({"status": "Success", "rank": result, "paMatrix": pa_matrix, "paCriteria": pa_criteria})
             else:
                 session.close()
                 return Response({"status": "Empty Value", "message": "Ma trận phương án hoặc tiêu chí trống!"})
@@ -94,6 +93,7 @@ def get_rank_plan(request):
             session.close()
             return Response({"status": "Not Found", "message": "Mã bài tính không tồn tại!"})
     except Exception as ex:
+        print(str(ex))
         return Response({
             "status": "Server Error",
             "error": str(ex)

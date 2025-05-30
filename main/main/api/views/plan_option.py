@@ -291,12 +291,12 @@ def split_each_string(string):
 
 
 column_map = {
-    "Thể loại": "category",
-    "Đánh giá IMDb": "imdb",
-    "Thời lượng": "duration",
-    "Đạo diễn": "director",
-    "Đề cử & Giải thưởng": "awards",
-    "Quốc gia": "nation"
+    "Thể Loại": "category",
+    "Đánh Giá IMDb": "imdb",
+    "Thời Lượng": "duration",
+    "Đạo Diễn": "director",
+    "Đề Cử & Giải Thưởng": "awards",
+    "Quốc Gia": "nation"
 }
 
 
@@ -312,7 +312,9 @@ def get_catalyst_menu(request):
                 catalyst = []
                 for item in get_criteria:
                     list_string = []
+                    print(item.name)
                     column_name = column_map.get(item.name)
+                    print(column_name)
                     if column_name:
                         for plan, default in get_plans:
                             value = getattr(default, column_name)

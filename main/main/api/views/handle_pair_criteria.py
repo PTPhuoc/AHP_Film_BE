@@ -8,11 +8,12 @@ from ..models.caculators import Caculators
 
 
 def handle_rank(matrix):
-    ranks = np.argsort(-matrix)
-    ranking = np.empty_like(ranks)
-    ranking[ranks] = np.arange(1, len(matrix) + 1)
-    combine_array = np.column_stack((matrix, ranking))
-    return combine_array
+    matrix = matrix.flatten()
+    order = np.argsort(-matrix)
+    ranks = np.empty_like(order)
+    ranks[order] = np.arange(1, len(matrix) + 1)
+    combined = np.column_stack((matrix, ranks))
+    return combined
 
 
 @api_view(["POST"])
